@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { Layout } from "@/componentes/layouts";
 import { Pokemon, PokemonListResponse } from "@/interfaces";
@@ -16,6 +16,11 @@ const PokemonByNamePage: NextPage<Props> = ({ pokemon }) => {
   const [isInFavorites, setIsInFavorites] = useState(
     localFavorites.existInFavorites(pokemon.id)
   );
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const onToggleFavorite = () => {
     localFavorites.toggleFavorite(pokemon.id);
@@ -62,7 +67,9 @@ const PokemonByNamePage: NextPage<Props> = ({ pokemon }) => {
                 ghost={!isInFavorites}
                 onClick={onToggleFavorite}
               >
-                {isInFavorites ? "En favoritos" : "Guardar en favoritos"}
+                {isClient && isInFavorites
+                  ? "En favoritos"
+                  : "Guardar en favoritos"}
               </Button>
             </Card.Header>
             <Card.Body>
@@ -107,15 +114,26 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
   return {
     paths: pokemonNames.map((name) => ({ params: { name } })),
-    fallback: false,
+    fallback: "blocking",
   };
 };
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const { name } = params as { name: string };
 
+  const pokemon = await getPokemonInfo(name.toString());
+
+  if (!pokemon) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+
   return {
-    props: { pokemon: await getPokemonInfo(name) },
+    props: { pokemon },
   };
 };
 
